@@ -1,0 +1,15 @@
+# Android SDK (local install)
+android-sdk/
+local.properties
+
+# Gradle
+.gradle/
+build/
+**/build/
+
+# IDE
+.idea/
+*.iml
+
+# OS
+.DS_Store
