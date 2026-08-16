@@ -20,10 +20,11 @@ import DeviceShowcase, { MobilePhoneSection } from "./DeviceShowcase";
 import FieldTest from "./FieldTest";
 import CTA from "./CTA";
 import Footer from "./Footer";
+import { MeshProvider } from "../context/MeshContext";
 
 export default function RelayLanding() {
   return (
-    <>
+    <MeshProvider>
       <a href="#main" className="skip-link">
         Skip to content
       </a>
@@ -74,6 +75,6 @@ export default function RelayLanding() {
         <CTA />
       </main>
       <Footer />
-    </>
+    </MeshProvider>
   );
 }

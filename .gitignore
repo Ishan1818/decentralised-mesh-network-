@@ -20,5 +20,12 @@ pnpm-debug.log*
 # macOS-specific files
 .DS_Store
 
-# jetbrains setting folder
-.idea/
+# Android
+app/build/
+.gradle/
+local.properties
+*.apk
+*.aab
+
+# Gateway build
+gateway/dist/

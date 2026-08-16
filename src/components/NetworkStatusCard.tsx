@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+import { useMeshOptional } from "../context/MeshContext";
 
 function MiniTopology() {
   return (
@@ -16,6 +17,12 @@ function MiniTopology() {
 }
 
 export default function NetworkStatusCard() {
+  const mesh = useMeshOptional();
+  const status = mesh?.snapshot?.status;
+  const live = mesh?.connected ?? false;
+  const nodesNearby = status?.nodesNearby ?? 14;
+  const meshActive = status?.meshActive ?? true;
+
   return (
     <motion.aside
       className="editorial-card p-5 md:p-8 max-lg:max-w-md"
@@ -31,28 +38,26 @@ export default function NetworkStatusCard() {
           <p className="font-sans text-[0.65rem] tracking-[0.2em] text-stone/50 uppercase">
             Local Mesh
           </p>
-          <p className="font-display mt-1 text-3xl text-gold">Active</p>
+          <p className="font-display mt-1 text-3xl text-gold">
+            {meshActive ? "Active" : "Offline"}
+          </p>
         </div>
         <MiniTopology />
       </div>
 
-      <p className="font-display mb-6 text-2xl text-paper">14 nodes nearby</p>
+      <p className="font-display mb-6 text-2xl text-paper">{nodesNearby} nodes nearby</p>
 
       <ul className="space-y-2 border-t border-stone/10 pt-4">
-        {["No internet", "No cellular service", "Communication available"].map((item, i) => (
-          <li
-            key={item}
-            className={`font-sans text-[0.7rem] tracking-wide ${
-              i === 2 ? "text-sage" : "text-stone/60"
-            }`}
-          >
-            {i === 2 ? "● " : "○ "}
-            {item}
-          </li>
-        ))}
+        <li className="font-sans text-[0.7rem] tracking-wide text-stone/60">○ No internet</li>
+        <li className="font-sans text-[0.7rem] tracking-wide text-stone/60">○ No cellular service</li>
+        <li className="font-sans text-[0.7rem] tracking-wide text-sage">
+          ● Communication available
+        </li>
       </ul>
 
-      <p className="label-meta mt-6 text-stone/25">Demo Network</p>
+      <p className="label-meta mt-6 text-stone/25">
+        {live ? "Live Gateway" : "Demo Network"}
+      </p>
     </motion.aside>
   );
 }

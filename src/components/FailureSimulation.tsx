@@ -1,35 +1,62 @@
 import { centerpieceNodes, centerpieceEdges } from "../data/demoNodes";
 import { useNetworkAnimation } from "../hooks/useNetworkAnimation";
+import { useMeshOptional } from "../context/MeshContext";
 import { motion } from "motion/react";
+import { useState } from "react";
 
 export default function FailureSimulation() {
+  const mesh = useMeshOptional();
   const nodes = centerpieceNodes;
   const edges = centerpieceEdges;
 
-  const {
-    excludedNodes,
-    activeRoute,
-    packetPosition,
-    status,
-    activeEdges,
-    simulateFailure,
-    sendPacket,
-    resetNetwork,
-  } = useNetworkAnimation({ nodes, edges });
+  const local = useNetworkAnimation({ nodes, edges });
+  const [showSos, setShowSos] = useState(false);
 
-  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  const centerpiece = mesh?.snapshot?.centerpiece;
+  const useLive = mesh?.connected && centerpiece;
+
+  const excludedNodes = useLive
+    ? new Set(centerpiece.nodes.filter((n) => n.disabled).map((n) => n.id))
+    : local.excludedNodes;
+
+  const activeRoute = useLive ? centerpiece.activeRoute : local.activeRoute;
+  const status = useLive ? centerpiece.status : local.status;
+  const activeEdges = useLive
+    ? centerpiece.edges
+    : local.activeEdges;
+
   const cDisabled = excludedNodes.has("C");
 
-  const handleDisableC = () => {
+  const handleDisableC = async () => {
     if (cDisabled) return;
-    simulateFailure("C", "A", "F");
+    if (useLive && mesh) {
+      await mesh.disableNode("C", "centerpiece");
+    } else {
+      local.simulateFailure("C", "A", "F");
+    }
   };
 
-  const handleSendSOS = () => {
-    const route = activeRoute.length > 1 ? activeRoute : ["A", "D", "E", "F"];
-    sendPacket(route);
+  const handleSendSOS = async () => {
+    if (useLive && mesh) {
+      await mesh.sendSos();
+      setShowSos(true);
+      setTimeout(() => setShowSos(false), 3000);
+    } else {
+      const route = activeRoute.length > 1 ? activeRoute : ["A", "D", "E", "F"];
+      local.sendPacket(route);
+    }
   };
 
+  const handleReset = async () => {
+    if (useLive && mesh) {
+      await mesh.reset();
+    } else {
+      local.resetNetwork();
+    }
+    setShowSos(false);
+  };
+
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
   const getPos = (id: string) => nodeMap.get(id);
 
   return (
@@ -48,6 +75,12 @@ export default function FailureSimulation() {
               the recovered path.
             </p>
 
+            {mesh?.connected && (
+              <p className="mt-4 font-sans text-[0.6rem] tracking-[0.12em] text-sage uppercase">
+                ● Connected to gateway
+              </p>
+            )}
+
             <div className="mt-8 flex flex-wrap gap-3">
               <button
                 type="button"
@@ -60,7 +93,7 @@ export default function FailureSimulation() {
               <button type="button" onClick={handleSendSOS} className="btn-secondary">
                 Send SOS
               </button>
-              <button type="button" onClick={resetNetwork} className="btn-secondary">
+              <button type="button" onClick={handleReset} className="btn-secondary">
                 Reset
               </button>
             </div>
@@ -70,6 +103,7 @@ export default function FailureSimulation() {
                 className="mt-6 font-sans text-[0.7rem] tracking-[0.15em] text-gold uppercase"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
+                key={status}
               >
                 {status}
               </motion.p>
@@ -109,8 +143,6 @@ export default function FailureSimulation() {
               {nodes.map((node) => {
                 const disabled = excludedNodes.has(node.id);
                 const onRoute = activeRoute.includes(node.id);
-                const hasPacket =
-                  packetPosition >= 0 && activeRoute[packetPosition] === node.id;
                 return (
                   <g key={node.id}>
                     <circle
@@ -120,11 +152,9 @@ export default function FailureSimulation() {
                       fill={
                         disabled
                           ? "transparent"
-                          : hasPacket
-                            ? "#D7A84A"
-                            : onRoute
-                              ? "#9A632C"
-                              : "#768965"
+                          : onRoute
+                            ? "#9A632C"
+                            : "#768965"
                       }
                       stroke={disabled ? "#8B3A2A" : onRoute ? "#D7A84A" : "#5B4F32"}
                       strokeWidth={disabled ? 1.5 : 1}
@@ -157,14 +187,15 @@ export default function FailureSimulation() {
                 );
               })}
 
-              {packetPosition >= 0 && activeRoute[packetPosition] && (
+              {showSos && activeRoute.length > 0 && (
                 <motion.text
-                  x={getPos(activeRoute[packetPosition])!.x}
-                  y={getPos(activeRoute[packetPosition])!.y - 20}
+                  x={getPos(activeRoute[activeRoute.length - 1])!.x}
+                  y={getPos(activeRoute[activeRoute.length - 1])!.y - 20}
                   textAnchor="middle"
                   fill="#D7A84A"
                   fontSize="10"
                   fontFamily="Inter"
+                  initial={{ opacity: 0 }}
                   animate={{ opacity: [1, 0.5, 1] }}
                   transition={{ repeat: Infinity, duration: 0.8 }}
                 >
@@ -174,7 +205,7 @@ export default function FailureSimulation() {
             </svg>
 
             <p className="label-meta mt-4 text-center text-stone/25">
-              Interactive Simulation · Demo Data
+              {useLive ? "Live Gateway Simulation" : "Local Demo · Offline Fallback"}
             </p>
           </div>
         </div>
